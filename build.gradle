@@ -99,7 +99,9 @@ dependencies {
     testRuntimeOnly 'org.objenesis:objenesis'
 }
 
-compileTestJava.dependsOn expandRobotCore, expandHardware, expandCommon, copyRobotCoreSources, copyHardwareSources, copyCommonSources
+Task[] dependencyTasks = [expandRobotCore, expandHardware, expandCommon, copyRobotCoreSources, copyHardwareSources, copyCommonSources]
+compileTestJava.dependsOn dependencyTasks
+prepareKotlinBuildScriptModel.dependsOn dependencyTasks
 
 test {
     useJUnitPlatform()
