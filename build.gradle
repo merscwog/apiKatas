@@ -1,0 +1,115 @@
+apply plugin: 'groovy'
+
+repositories {
+    google()
+    jcenter()
+    ivy {
+        url = file("${buildDir}/copied-artifacts").toURI()
+        metadataSources {
+            artifact()
+        }
+        patternLayout {
+            artifact('[artifact]-[revision](-[classifier]).[ext]')
+            artifact('[artifact](-[classifier]).[ext]')
+        }
+    }
+    maven {
+        url = 'https://dl.bintray.com/first-tech-challenge/ftcsdk/'
+    }
+}
+
+configurations {
+    robotCoreAar
+    hardwareAar
+    commonAar
+    robotCoreSources
+    hardwareSources
+    commonSources
+}
+
+dependencies {
+    robotCoreAar 'org.firstinspires.ftc:RobotCore:6.0.1@aar'
+    hardwareAar 'org.firstinspires.ftc:Hardware:6.0.1@aar'
+    commonAar 'org.firstinspires.ftc:FtcCommon:6.0.1@aar'
+    robotCoreSources 'org.firstinspires.ftc:RobotCore:6.0.1:sources@jar'
+    hardwareSources 'org.firstinspires.ftc:Hardware:6.0.1:sources@jar'
+    commonSources 'org.firstinspires.ftc:FtcCommon:6.0.1:sources@jar'
+}
+
+task expandRobotCore(type: Copy) {
+    from configurations.robotCoreAar.asFileTree.each {
+        from(zipTree(it)).include('classes.jar')
+    }
+    into "${buildDir}/copied-artifacts"
+    rename 'classes.jar', 'CopiedRobotCore-6.0.1.jar'
+}
+
+task expandHardware(type: Copy) {
+    from configurations.hardwareAar.asFileTree.each {
+        from(zipTree(it)).include('classes.jar')
+    }
+    into "${buildDir}/copied-artifacts"
+    rename 'classes.jar', 'CopiedHardware-6.0.1.jar'
+}
+
+task expandCommon(type: Copy) {
+    from configurations.commonAar.asFileTree.each {
+        from(zipTree(it)).include('classes.jar')
+    }
+    into "${buildDir}/copied-artifacts"
+    rename 'classes.jar', 'CopiedFtcCommon-6.0.1.jar'
+}
+
+task copyRobotCoreSources(type: Copy) {
+    from configurations.robotCoreSources
+    into "${buildDir}/copied-artifacts"
+    rename '(.*)', 'Copied$1'
+}
+
+task copyHardwareSources(type: Copy) {
+    from configurations.hardwareSources
+    into "${buildDir}/copied-artifacts"
+    rename '(.*)', 'Copied$1'
+}
+
+task copyCommonSources(type: Copy) {
+    from configurations.commonSources
+    into "${buildDir}/copied-artifacts"
+    rename '(.*)', 'Copied$1'
+}
+
+sourceSets {
+    test {
+        java {
+            srcDir 'src/test/fake-android'
+        }
+    }
+}
+
+dependencies {
+    testImplementation 'org.firstinspires.ftc:CopiedRobotCore:6.0.1@jar'
+    testImplementation 'org.firstinspires.ftc:CopiedHardware:6.0.1@jar'
+    testImplementation 'org.firstinspires.ftc:CopiedFtcCommon:6.0.1@jar'
+
+    testImplementation platform('org.spockframework:spock-bom:2.0-M3-groovy-3.0')
+    testImplementation 'org.spockframework:spock-core'
+    testImplementation 'org.codehaus.groovy:groovy:3.0.4'
+
+    testRuntimeOnly 'net.bytebuddy:byte-buddy'
+    testRuntimeOnly 'org.objenesis:objenesis'
+}
+
+compileTestJava.dependsOn expandRobotCore, expandHardware, expandCommon, copyRobotCoreSources, copyHardwareSources, copyCommonSources
+
+test {
+    useJUnitPlatform()
+    failFast = true
+    testLogging {
+        events = ['PASSED', 'FAILED']
+        exceptionFormat = 'FULL'
+    }
+}
+
+wrapper {
+    distributionType = 'ALL'
+}
